@@ -9,7 +9,12 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+node_modules/
+.next/
+.env
+.env.local
+build/
+dist/
 # testing
 /coverage
 
@@ -39,3 +44,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Supabase
+supabase/.temp/
+.env*.local
