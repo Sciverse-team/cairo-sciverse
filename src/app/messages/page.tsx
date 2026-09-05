@@ -27,6 +27,8 @@ interface TeamItem {
   lastMessageTime?: string;
 }
 
+const messageHistoryStorageKey = 'cairo-sciverse-message-history';
+
 function MessagesContent() {
   const searchParams = useSearchParams();
   const teamId = searchParams.get('teamId');
@@ -77,11 +79,30 @@ useEffect(() => {
 
   async function fetchChatAndMembers() {
     try {
+      const storedHistory = sessionStorage.getItem(messageHistoryStorageKey);
+      const historyByTeam = storedHistory
+        ? (JSON.parse(storedHistory) as Record<string, Message[]>)
+        : {};
+      setMessages(historyByTeam[activeTeamId] || []);
+
       // جلب الرسائل
       const msgRes = await fetch(`/api/messages?teamId=${activeTeamId}`);
       if (msgRes.ok) {
         const msgData = await msgRes.json();
-        setMessages(msgData.messages || []);
+        const teamMessages = msgData.messages || [];
+        setMessages(teamMessages);
+        try {
+          const storedHistory = sessionStorage.getItem(messageHistoryStorageKey);
+          const historyByTeam = storedHistory
+            ? (JSON.parse(storedHistory) as Record<string, Message[]>)
+            : {};
+          sessionStorage.setItem(
+            messageHistoryStorageKey,
+            JSON.stringify({ ...historyByTeam, [activeTeamId]: teamMessages })
+          );
+        } catch {
+          // Session storage is best-effort; Supabase remains the source of truth.
+        }
       } else {
         console.error('Messages API error status:', msgRes.status);
       }
@@ -187,13 +208,29 @@ useEffect(() => {
         body: JSON.stringify({ teamId: activeTeam.id, content: text }),
       });
       const data = await res.json();
-      if (res.ok && data.messageId) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, id: data.messageId } : m))
-        );
+      if (!res.ok || !data.success) {
+        const errorMessage = data.error || 'Message was not saved';
+        console.error('Message API error:', errorMessage);
+        setMessages((prev) => prev.filter((message) => message.id !== tempId));
+        window.alert(`لم يتم حفظ الرسالة: ${errorMessage}`);
+        return;
       }
+
+      const historyRes = await fetch(`/api/messages?teamId=${activeTeam.id}`, {
+        cache: 'no-store',
+      });
+      if (!historyRes.ok) {
+        console.error('Message history refresh failed:', historyRes.status);
+        return;
+      }
+
+      const historyData = await historyRes.json();
+      setMessages(historyData.messages || []);
     } catch (err) {
       console.error('Send Error:', err);
+      setMessages((prev) => prev.filter((message) => message.id !== tempId));
+      const errorMessage = err instanceof Error ? err.message : 'خطأ غير معروف';
+      window.alert(`لم يتم حفظ الرسالة: ${errorMessage}`);
     }
   };
 

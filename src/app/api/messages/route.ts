@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { canChatWithTeam, getChatAccess } from '@/lib/chat-access';
 
@@ -32,7 +33,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'You do not have chat access to this team' }, { status: 403 });
     }
 
-    const { data: messages, error } = await supabase
+    const adminSupabase = createAdminClient();
+    const { data: messages, error } = await adminSupabase
       .from('messages')
       .select('id, content, sender_id, created_at, users!messages_sender_id_fkey(full_name)')
       .eq('team_id', teamId)
@@ -73,16 +75,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'You do not have chat access to this team' }, { status: 403 });
     }
 
-    const { data: message, error } = await supabase
+    const adminSupabase = createAdminClient();
+    const { error } = await adminSupabase
       .from('messages')
-      .insert({ team_id: teamId, sender_id: userId, content })
-      .select('id')
-      .single();
+      .insert({ team_id: teamId, sender_id: userId, content });
 
     if (error) throw error;
-    return NextResponse.json({ success: true, messageId: message.id });
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Send message error:', err);
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: errorMessage.includes('chat access') ? 403 : 500 }
+    );
   }
 }
