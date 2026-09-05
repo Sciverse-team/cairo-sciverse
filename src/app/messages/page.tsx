@@ -38,7 +38,6 @@ function MessagesContent() {
   const [inputText, setInputText] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState('');
-  const [currentUserRole, setCurrentUserRole] = useState('Member');
   const [activeTeam, setActiveTeam] = useState<TeamItem | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [showMembersModal, setShowMembersModal] = useState(false);
@@ -61,7 +60,6 @@ function MessagesContent() {
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setCurrentUserName(profileData.profile?.fullName || '');
-          setCurrentUserRole(profileData.profile?.role || 'Member');
         }
 
         const res = await fetch('/api/teams');//
@@ -325,7 +323,7 @@ useEffect(() => {
                         }`}
                       >
                         {msg.senderName}
-                        {isMe && ` • ${currentUserRole}`}
+                        {isMe && ` • ${activeTeam.role}`}
                       </span>
                       <p>{msg.content}</p>
                     </div>

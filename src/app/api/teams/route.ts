@@ -11,7 +11,7 @@ export async function GET() {
 
     const supabase = await createClient();
     const access = await getChatAccess(supabase, userId);
-    const teamIds = [access.homeTeamId, ...access.acceptedTeamIds].filter(
+    const teamIds = [...access.teamIds, ...access.acceptedTeamIds].filter(
       (teamId): teamId is string => Boolean(teamId)
     );
 
@@ -37,12 +37,10 @@ export async function GET() {
       const lastMessage = [...(team.messages || [])].sort(
         (first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime()
       )[0];
-      const membership = team.team_memberships?.find((item) => item.role === 'Leader');
-
       return {
         id: team.id,
         name: team.name,
-        role: team.id === access.homeTeamId ? membership?.role || 'Member' : 'Member',
+        role: access.teamRoles[team.id] || 'Member',
         lastMessage: lastMessage?.content || 'No messages yet',
         lastMessageTime: lastMessage?.created_at || null,
       };
