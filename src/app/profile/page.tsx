@@ -10,6 +10,12 @@ interface NotificationItem {
   message: string;
 }
 
+interface TeamMembership {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
 
@@ -18,7 +24,7 @@ export default function ProfilePage() {
   const [password, setPassword] = useState('');
   const [teamName, setTeamName] = useState('');
   const [role, setRole] = useState('');
-
+  const [memberships, setMemberships] = useState<TeamMembership[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,10 +42,11 @@ export default function ProfilePage() {
           setPhone(data.profile.phone || ''); // تم إصلاح استخراج الهاتف هنا
           setTeamName(data.profile.teamName || '');
           setRole(data.profile.role || '');
+            setMemberships(data.profile.memberships || []);
           setNotifications(data.notifications || []);
         }
-      } catch (err) {
-        console.error('Failed to load profile:', err);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
       } finally {
         setLoading(false);
       }
@@ -65,7 +72,7 @@ export default function ProfilePage() {
       } else {
         setMsg({ type: 'error', text: data.error || 'Failed to update' });
       }
-    } catch (err) {
+    } catch {
       setMsg({ type: 'error', text: 'An error occurred' });
     } finally {
       setSaving(false);
@@ -176,23 +183,15 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500">Group</label>
-            <input
-              type="text"
-              disabled
-              value={teamName}
-              className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-600 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-gray-500">Type</label>
-            <input
-              type="text"
-              disabled
-              value={role}
-              className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-600 shadow-sm"
-            />
+            <label className="text-xs font-semibold text-gray-500">Groups</label>
+            <div className="mt-1 space-y-2">
+              {(memberships.length > 0 ? memberships : [{ id: 'default', name: teamName, role }]).map((membership) => (
+                <div key={membership.id} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-3 text-sm shadow-sm">
+                  <span className="font-medium text-gray-700">{membership.name}</span>
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">{membership.role}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
