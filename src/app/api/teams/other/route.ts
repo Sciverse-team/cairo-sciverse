@@ -16,14 +16,14 @@ export async function GET(request: Request) {
 
     const supabase = await createClient();
 
-    // 1. معرفة فريق المستخدم الحالي لاستبعاده
-    const { data: userMembership } = await supabase
+    // 1. معرفة جميع فرق المستخدم لاستبعادها
+    const { data: userMemberships, error: membershipsError } = await supabase
       .from('team_memberships')
       .select('team_id')
-      .eq('user_id', userId)
-      .maybeSingle();
+      .eq('user_id', userId);
 
-    const myTeamId = userMembership?.team_id;
+    if (membershipsError) throw membershipsError;
+    const myTeamIds = new Set((userMemberships || []).map((membership) => membership.team_id));
 
     // 2. الاستعلام عن الفرق الأخرى مع دعم البحث
     let teamsQuery = supabase
@@ -37,10 +37,6 @@ export async function GET(request: Request) {
           users ( full_name )
         )
       `);
-
-    if (myTeamId) {
-      teamsQuery = teamsQuery.neq('id', myTeamId);
-    }
 
     if (searchQuery) {
       teamsQuery = teamsQuery.ilike('name', `%${searchQuery}%`);
@@ -62,7 +58,7 @@ export async function GET(request: Request) {
     });
 
     // 4. تنسيق البيانات للـ Frontend
-    const formattedTeams = (teamsData || []).map((team) => {
+    const formattedTeams = (teamsData || []).filter((team) => !myTeamIds.has(team.id)).map((team) => {
       const memberships = team.team_memberships || [];
       const leaderMembership = memberships.find((m) => m.role === 'Leader');
       
