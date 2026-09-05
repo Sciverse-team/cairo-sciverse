@@ -9,7 +9,12 @@ interface MessageRow {
   content: string;
   sender_id: string;
   created_at: string;
-  users: { full_name: string }[] | null;
+  users: { full_name: string } | { full_name: string }[] | null;
+}
+
+function getSenderName(user: MessageRow['users']): string {
+  if (Array.isArray(user)) return user[0]?.full_name || 'Member';
+  return user?.full_name || 'Member';
 }
 
 async function getUserId() {
@@ -46,7 +51,7 @@ export async function GET(request: Request) {
       id: message.id,
       content: message.content,
       senderId: message.sender_id,
-      senderName: message.users?.[0]?.full_name || 'Member',
+      senderName: getSenderName(message.users),
       createdAt: message.created_at,
     }));
 

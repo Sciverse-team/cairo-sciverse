@@ -37,6 +37,8 @@ function MessagesContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState('');
+  const [currentUserRole, setCurrentUserRole] = useState('Member');
   const [activeTeam, setActiveTeam] = useState<TeamItem | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [showMembersModal, setShowMembersModal] = useState(false);
@@ -54,6 +56,13 @@ function MessagesContent() {
           .find((row) => row.startsWith('user_id='))
           ?.split('=')[1];
         if (userIdCookie) setCurrentUserId(userIdCookie);
+
+        const profileRes = await fetch('/api/profile');
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setCurrentUserName(profileData.profile?.fullName || '');
+          setCurrentUserRole(profileData.profile?.role || 'Member');
+        }
 
         const res = await fetch('/api/teams');//
                 const data = await res.json();
@@ -192,7 +201,7 @@ useEffect(() => {
       id: tempId,
       content: text,
       senderId: currentUserId || '',
-      senderName: 'Me',
+      senderName: currentUserName || 'Member',
       createdAt: new Date().toISOString(),
     };
 
@@ -297,7 +306,7 @@ useEffect(() => {
             {/* Messages List */}
             <main className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map((msg) => {
-                const isMe = msg.senderId === currentUserId || msg.senderName === 'Me';
+                const isMe = msg.senderId === currentUserId;
                 return (
                   <div
                     key={msg.id}
@@ -310,11 +319,14 @@ useEffect(() => {
                           : 'bg-white text-gray-800 rounded-bl-none'
                       }`}
                     >
-                      {!isMe && (
-                        <span className="block text-[10px] font-bold text-blue-500 mb-1">
-                          {msg.senderName}
-                        </span>
-                      )}
+                      <span
+                        className={`block text-[10px] font-bold mb-1 ${
+                          isMe ? 'text-blue-100' : 'text-blue-500'
+                        }`}
+                      >
+                        {msg.senderName}
+                        {isMe && ` • ${currentUserRole}`}
+                      </span>
                       <p>{msg.content}</p>
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { getChatAccess } from '@/lib/chat-access';
 
@@ -16,7 +17,8 @@ export async function GET() {
 
     if (teamIds.length === 0) return NextResponse.json({ success: true, teams: [] });
 
-    const { data: teams, error } = await supabase
+    const adminSupabase = createAdminClient();
+    const { data: teams, error } = await adminSupabase
       .from('teams')
       .select(`
         id,
